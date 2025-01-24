@@ -103,3 +103,5 @@ showPending.addEventListener("click", () => renderTasks("pending"));
 
 // Initial Task Rendering
 renderTasks();
+
+

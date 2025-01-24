@@ -152,25 +152,23 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// self.addEventListener('push', (event) => {
-//   const data = event.data ? event.data.json() : {};
-//   console.log('Push received:', data);
+self.addEventListener('push', function(event) {
+  const options = {
+      body: event.data ? event.data.text() : 'You have a new notification!',
+      icon: 'icons/icon-192x192.png',
+      badge: 'icons/icon-48x48.png'
+  };
 
-//   const options = {
-//     body: data.body || 'You have a new notification!',
-//     icon: '/icons/icon-192x192.png',
-//     badge: '/icons/icon-512x512.png',
-//   };
+  event.waitUntil(
+      self.registration.showNotification('Push Notification', options)
+  );
+});
 
-//   event.waitUntil(
-//     self.registration.showNotification(data.title || 'Task Manager', options)
-//   );
-// });
-
-// self.addEventListener('notificationclick', (event) => {
-//   event.notification.close();
-//   event.waitUntil(
-//     clients.openWindow('/index.html') // Open the app page
-//   );
-// });
+// Notification click event handler
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(
+      clients.openWindow('/index.html') // Open your app's main page
+  );
+});
 

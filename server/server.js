@@ -1,46 +1,54 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const webPush = require('web-push');
-
-const app = express();
-app.use(bodyParser.json());
-
-const vapidKeys = {
-  publicKey: 'BClXbFKfmketTLjpgS8bBMGAHMtCfiwbbaPLdTgPgedm8DAESWldji8laLErBS-XzMxiMW6qiXNPgNGELYTzv78',
-  privateKey: '4xAnkx9W8-NplAxgpn7iIq5VwjGHuiJxSCOWwJOfpOU',
-};
-
-webPush.setVapidDetails('anil.nrsc2025@gmail.com', vapidKeys.publicKey, vapidKeys.privateKey);
-
-let subscriptions = [];
-
-// Save subscription
-app.post('/subscribe', (req, res) => {
-  const subscription = req.body;
-  subscriptions.push(subscription);
-  res.status(201).json({ message: 'Subscription saved.' });
-});
-
-// Send notification
-app.post('/sendNotification', (req, res) => {
-  const payload = JSON.stringify({
-    title: 'Task Reminder',
-    body: 'You have pending tasks in Task Manager!',
+// Check if Notification and Service Worker are supported by the browser
+if ('Notification' in window && 'serviceWorker' in navigator) {
+  // Request permission for notifications
+  Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+          console.log("Notification permission granted.");
+      } else {
+          console.log("Notification permission denied.");
+      }
   });
 
-  const promises = subscriptions.map((sub) =>
-    webPush.sendNotification(sub, payload)
-  );
+  // Handle the click event for subscribing to push notifications
+  document.getElementById('subscribeBtn').addEventListener('click', function () {
+      navigator.serviceWorker.ready.then(function (registration) {
+          subscribeUserToPush(registration);
+      });
+  });
+}
 
-  Promise.all(promises)
-    .then(() => res.status(200).json({ message: 'Notifications sent.' }))
-    .catch((err) => {
-      console.error('Error sending notifications:', err);
-      res.status(500).json({ error: 'Failed to send notifications.' });
-    });
-});
+// Function to subscribe the user to push notifications
+function subscribeUserToPush(registration) {
+  // Public VAPID Key (replace with your actual public VAPID key)
+  const publicVapidKey = 'BBao7mgQbllM9BVEiEEd_whlP8VyQTE0zBldOVZhGzKq3mHFi6ElEMjl7mEdPRFfwiB71fUmMwfVTwgZNj9TFjM'; // Replace with your public VAPID key
 
-app.listen(3000, () => {
-  console.log('Server is running on http://localhost:5500');
-  console.log('VAPID Public Key:', vapidKeys.publicKey);
-});
+  // Convert the VAPID public key to Uint8Array
+  const convertedVapidKey = urlBase64ToUint8Array(publicVapidKey);
+
+  // Subscribe to push notifications
+  registration.pushManager.subscribe({
+      userVisibleOnly: true, // Only send notifications the user can see
+      applicationServerKey: convertedVapidKey
+  })
+      .then(subscription => {
+          console.log('User subscribed:', subscription);
+          // You can send the subscription object to your server to save it and use it for sending notifications
+      })
+      .catch(error => {
+          console.error('Subscription failed:', error);
+      });
+}
+
+// Helper function to convert VAPID public key to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
